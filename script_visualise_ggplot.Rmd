@@ -1,0 +1,454 @@
+---
+title: "Visualizing data with ggplot2"
+subtitle: "Computational Social Science Group Madison"
+author: "Stefan Haussner (stefan.haussner@uni-due.de)"
+date: "02/21/2020"
+output:  
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+```ggplot2``` is an R-package, which was developed especially for data visualization. In contrast to many other tools for graphics creation, ggplot2 has its own grammar. This reflects a special philosophy, according to which graphics can be created. This "grammar" is taken from the book *The grammar of graphics* ([Wilkinson 2005](https://www.amazon.de/Grammar-Graphics-Statistics-Computing/dp/0387245448)). That's the reason why ggplot2 is called like that: the *gg* stands for *grammar of graphics*.
+
+ggplot2 is one of the most used packages in R and has an extremely active community behind it. the ggplot2 mailing list has over 7,000 members and there is a very active Stack Overflow community, with nearly 10,000 questions tagged with ggplot2. 
+
+
+```{r}
+#install.packages("ggplot2")
+library(ggplot2)
+citation("ggplot2")
+```
+
+In my opinion, this grammar forces you to think about what you want to say with the graphic. Compared to many other tools where you have to use predefined functions, ggplot2 offers maximum flexibility. The idea behind it is that graphics are put together piece by piece from different modules.
+
+Without predefined functions? Sounds complicated!
+
+In fact, ggplot2 has a set of different core principles that are recurrent or interchangeable. Basically these are:
+
+ * data, to be visualised
+  + geometric objects that appear on the plot (geoms)
+  + aesthetic mappings from data to visual component (aes)
+  + statistics transforming data on the way to the visualisation (stats)
+  + coordinates organize location of geometric objects (coord)
+  + scales define the range of values for aesthetics (scale)
+  + facets group into subplots (facet)
+
+
+This workshop will guide you through the basic principles of the package. And you will be able to produce good looking graphics for yourself in the end ;)
+
+# Preparation
+
+We will use some further packages in this workshop. ggplot2 is part of the *tidyverse* and works pretty well together with other packages from it. So we will use the dplyr-package sometimes to prepare the data accordingly.
+
+Furthermore, we will use the gapminder dataset from the gapminder package. And finally we load (or install) the package viridis, which gives us basically another color scheme from the default one, which is good for publications (preserves differences between colors also when you print it in black/white-mode) and for color-blind-people (note: the author sometimes can't seperate between green and red. Please don't exclude people like him from exploring your beautiful analyses). 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#install.packages(c("gapminder", "dplyr","viridis"))
+library(dplyr)
+library(gapminder)
+library(viridis)
+```
+
+# the data
+
+Let's take a look into the gapminder dataset.
+
+```{r}
+data(gapminder)
+gapminder
+```
+
+As a first step, we extract only the data from the year 2007 from the dataset. We will use the filter-function of dplyr.
+
+```{r}
+gapminder_2007 <- gapminder %>% filter(year==2007)
+gapminder_2007
+```
+
+# the ggplot2-package
+
+## geoms
+
+What is meant by modular structure becomes clear here: The basic structure of the graphic is already called by the ggplot command. With the argument `aes` (aesthetics) you can already define basic options of the graphic. In this case the x-axis should always be the *gdp per capita* and the y-axis the *life expectancy*. We pass the data set *gapminder_2007* as data.
+
+Thus ggplot already creates the axes. The data is already linked to the graph, but ggplot2 does not yet know the "type" of the graph (the geometric figures).
+
+```{r}
+plot(gapminder_2007)
+ggplot(data = gapminder_2007)
+ggplot(data = gapminder_2007, aes(x = gdpPercap, y = lifeExp))
+```
+
+### geom_point - Scatterplots
+
+The so-called geoms can be used to specify which type of graphic should be displayed. In this case a `geom_point` as a point graph. ggplot now uses the x and y values and presents them as points.
+
+```{r}
+ggplot(gapminder_2007, aes(x = gdpPercap, y = lifeExp))+
+  geom_point()
+```
+
+### geom_smooth - Trendlines
+
+Often you want to draw trend lines through point clouds. This can be done in ggplot through the `geom_smooth`. This puts a regression line (and confidence intervals) through the data. The option `method='lm'` produces a linear approximation. 
+
+
+```{r}
+ggplot(gapminder_2007, aes(x = gdpPercap, y = lifeExp))+
+  geom_point()+
+  geom_smooth()
+
+ggplot(gapminder_2007, aes(x = gdpPercap, y = lifeExp))+
+  geom_point()+
+  geom_smooth(method = "lm")
+```
+
+The ordering of the geoms matter. "Later" geoms, will be added "on top" of the graph.
+
+```{r}
+ggplot(gapminder_2007, aes(x = gdpPercap, y = lifeExp))+
+  geom_point(size = 3)+
+  geom_smooth(size = 2, method = "loess")
+```
+
+vs.
+
+```{r}
+ggplot(gapminder_2007, aes(x = gdpPercap, y = lifeExp))+
+  geom_smooth(size = 2, method = "loess")+
+  geom_point(size = 3)
+
+```
+
+### geom_line - Lineplots
+
+By adding another geom - `geom_line` for line graphs - the modular design of ggplot2-graphs becomes clearer. Values that follow each other on the x-axis are linked together. In this case, of course, connecting the points makes little sense. 
+
+```{r}
+ggplot(gapminder_2007, aes(x = gdpPercap, y = lifeExp))+
+  geom_point()+
+  geom_line()
+```
+
+### geom_col or geom_bar - Barplots
+
+```{r}
+pop_by_year <- gapminder %>% group_by(year) %>%  summarise(worldpop = sum(pop, na.rm = TRUE)/1000000000)
+
+ggplot(pop_by_year, aes(x = year, y = worldpop))+
+  geom_col()
+```
+
+### geom_histogram - histograms
+
+```{r}
+ggplot(gapminder_2007, aes(x = gdpPercap))+
+  geom_histogram()
+```
+
+
+### geom_density - density plots
+
+```{r}
+
+ggplot(gapminder_2007, aes(x = gdpPercap))+
+  geom_density(fill = "blue", alpha = .3)
+
+```
+
+
+### geom_boxplot -  boxplots
+
+Black Line: Median,
+Box: 25% and 75%. Half of the distribution inside the box.
+whiskers: Additional countries
+Dots: Outliers (out of 95%)
+
+```{r}
+ggplot(gapminder_2007, aes(x = continent, y = lifeExp)) +
+  geom_point()
+
+ggplot(gapminder_2007, aes(x = continent, y = lifeExp)) +
+  geom_boxplot()
+```
+
+### The Cheatsheet for more geoms and more
+
+A fast and good overview over different geoms is the [ggplot2-cheatsheet](https://rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf)
+
+
+## Additional aesthetics
+
+So far we only had x and y.
+With aesthetics (`aes`), however, even more features can be controlled, such as color, groups, dot size, etc. A legend is added automatically. 
+
+The following is important: The option *color* could also be specified outside of `aes()`. Then you would color all points the same, e.g. in blue. By using it inside the `aes()` you can specify another variable of the data set and ggplot will use different colors based on this variable: here different colors for different continents.
+
+
+```{r}
+ggplot(gapminder_2007) +
+  geom_point(aes(x = gdpPercap, y = lifeExp, color = continent)) +
+  scale_x_log10()
+
+ggplot(gapminder_2007) +
+  geom_point(aes(x = gdpPercap, y = lifeExp), color = "blue") +
+  scale_x_log10()
+```
+
+Here the point size is set depending on the population size of the country. A second line within the `aes` does not matter to the R-Code. After commas there is even some nice indention, so you can see to which function the options belong.
+
+```{r}
+ggplot(gapminder_2007, aes(x = gdpPercap, 
+                           y = lifeExp, 
+                           color = continent, 
+                           size = pop)) +
+  geom_point() +
+  scale_x_log10()
+
+```
+
+
+## Grouping
+
+```{r}
+by_year_continent <- gapminder %>%
+  group_by(year, continent) %>%
+  summarize(totalPop = sum(as.numeric(pop)),
+            meanLifeExp = mean(lifeExp))
+
+by_year_continent
+```
+
+Alright, next plot is a bit weird. Let's separate the different continents by color. ggplot2 now automatically groups the lines and the plot makes much more sense now.
+
+```{r}
+ggplot(by_year_continent, aes(x = year, y = totalPop)) +
+  geom_point() + 
+  geom_line() +
+  expand_limits(y = 0)+
+  scale_color_viridis(discrete = T)
+
+ggplot(by_year_continent, aes(x = year, y = totalPop, color = continent)) +
+  geom_point() + 
+  geom_line() +
+  expand_limits(y = 0)+
+  scale_color_viridis(discrete = T)
+```
+
+Some geoms provide the `group`-option. If we like every line in black. Downside from it: We don't know, which continent is which.
+
+```{r}
+ggplot(by_year_continent, aes(x = year, y = totalPop, group = continent)) +
+  geom_point() + 
+  geom_line() +
+  expand_limits(y = 0)+
+  scale_color_viridis(discrete = T)
+```
+
+
+## Add log scales
+
+```{r}
+ggplot(gapminder_2007, aes(x = gdpPercap, y = lifeExp))+
+  geom_point()
+```
+
+Problem: Many countries on the left, with very low gdp percap
+Possible solution: Log Scale (modular structure - adding a "module" log_scale)
+
+```{r}
+ggplot(gapminder_2007, aes(x = gdpPercap, y = lifeExp))+
+  geom_point()+
+  scale_x_log10()
+```
+
+```{r}
+ggplot(gapminder_2007, aes(x = pop, y = gdpPercap))+
+  geom_point()+
+  scale_x_log10()+
+  scale_y_log10()
+```
+
+## Faceting
+
+Faceting describes a division of the graphic into "subgraphs". Again, a distinction is made according to the levels in a certain variable (here again continent).
+
+```{r}
+ggplot(gapminder_2007, aes(x = gdpPercap, y = lifeExp)) +
+  geom_point() +
+  scale_x_log10() +
+  facet_wrap(~ continent)
+```
+
+
+```{r}
+ggplot(gapminder, aes(x = gdpPercap, y = lifeExp, size = pop))+
+  geom_point()+
+  scale_x_log10()+
+  facet_wrap(~ year)
+```
+
+## including zero
+
+```{r}
+by_year <- gapminder %>%
+  group_by(year) %>%
+  summarize(totalPop = sum(as.integer(pop)),
+            meanLifeExp = mean(lifeExp))
+
+by_year
+```
+
+```{r}
+ggplot(by_year, aes(x = year, y = totalPop/1000000000)) +
+  geom_point()
+```
+
+
+Here the y-axis does not contain the 0 (most often a major mistake). Therefore we have to edit and adjust the scale. Again this can be done by a new "module".
+
+```{r}
+ggplot(by_year, aes(x = year, y = totalPop/1000000000)) +
+  geom_point() +
+  expand_limits(y = 0)
+```
+
+## Scales
+
+Sometimes it is necessary to change the scale in particular, as with `scale_x_log10`. But also colors etc. can be changed via `scale`. There are several functions for changing scales. They all start with `scale_' and then followed by what you want to change (color, size, etc.)
+
+```{r}
+ggplot(gapminder_2007, aes(x = gdpPercap, y = lifeExp, color = continent)) +
+  geom_point() +
+  scale_x_log10() +
+  scale_color_discrete(name = "Continent")+
+  scale_y_continuous(limits = c(0,100), breaks = seq(0,100,10))
+
+```
+
+At this point the viridis-package comes in. Some addon-packages to ggplot2 provide their own "scale-options".
+
+Use the color scales in this package to make plots that are pretty, better represent your data, easier to read by those with colorblindness, and print well in grey scale. [Viridis-Package](https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html)
+
+```{r}
+ggplot(gapminder_2007, aes(x = gdpPercap, y = lifeExp, color = continent)) +
+  geom_point() +
+  scale_x_log10() +
+  scale_color_viridis_d(name = "Continent")+
+  scale_y_continuous(limits = c(0,100), breaks = seq(0,100,10))
+```
+
+Basically, `aes` are linking the data to the graph, while `scales` decide how the aesthetics will look like.
+
+## coords
+
+Sometimes it is necessary to change the orientation of the plot. The only time I use one of these options, is the `coord_flip`. But there are some more coords-options.
+
+```{r}
+gapminder_2007 %>% top_n(30) %>%  
+  ggplot(aes(x = country, y = lifeExp))+
+    geom_col()
+
+gapminder_2007 %>% top_n(30) %>%  
+  ggplot(aes(x = country, y = lifeExp))+
+    geom_col()+
+    coord_flip()
+```
+
+
+## labels
+
+Of course we also want to label our graphics.
+
+```{r}
+ggplot(gapminder_2007, aes(x = continent, y = gdpPercap)) +
+  geom_boxplot() +
+  scale_y_log10() + 
+  labs(title = "Comparing GDP per capita across continents",
+       x = "Continent",
+       y = "GDP per capita")
+```
+
+
+## themes
+
+There are some predefined themes in ggplot. In addition, the ```ggthemes```-package contains some more presets. This can make your graphics look like the Wall Street Journal, fivethirtyeight or good old excel.
+
+
+
+```{r warning=FALSE, message=FALSE}
+#install.packages("ggthemes")
+library(ggthemes)
+```
+
+All you must do is to add the theme to the ggplot-code-line.
+
+```{r}
+ggplot(gapminder_2007, aes(x = gdpPercap, y = lifeExp, color = continent)) +
+  geom_point() +
+  scale_x_log10()+
+  theme_bw()
+```
+
+But of course you can also create your own theme. There are hundreds of different setting options. The most common is probably that you want to remove the legend or change its position, but you can do whatever you like, basically.
+
+```{r}
+ggplot(data = gapminder_2007, aes(x = continent, y = lifeExp, color = continent))+
+  geom_boxplot()+
+  theme(legend.position = "off")
+
+ggplot(data = gapminder_2007, aes(x = continent, y = lifeExp, color = continent))+
+  geom_boxplot()+
+  theme(legend.position = "top", 
+        axis.text.x = element_text(angle = 90), 
+        axis.ticks.length = unit(50, "pt"), 
+        panel.background = element_rect(fill = "darkblue", color = "darkblue"))
+```
+
+# Addons for fancy stuff
+
+A strength of R are also interactive graphics. When called via `ggplotly` from the ```plotly```-package, the graphic is already rudimentarily interactive. Labels etc. would have to be edited again. However, some functionability is already available.
+
+```{r message=FALSE, warning=FALSE}
+#install.packages("plotly")
+library(plotly)
+
+p_scatter <- ggplot(gapminder_2007, aes(x = gdpPercap, 
+                           y = lifeExp, 
+                           color = continent, 
+                           size = pop)) +
+  geom_point() +
+  scale_x_log10()
+
+p_scatter
+
+ggplotly(p_scatter)
+```
+
+The ```gganimate```-package extends the grammar of graphics as implemented by ggplot2 to include the description of animation. It does this by providing a range of new grammar classes that can be added to the plot object in order to customise how it should change with time.
+
+```{r warning=FALSE}
+#install.packages("gganimate")
+
+library(gganimate)
+
+p <- ggplot(gapminder) +
+  aes(x = gdpPercap, y = lifeExp, size = pop, color = continent) +
+  geom_point() +
+  scale_x_log10()+
+  guides(color = FALSE, size = FALSE)
+
+p
+
+p + 
+  transition_states(year, 1, 0) + 
+  ggtitle("{closest_state}")
+```
+
+
+
