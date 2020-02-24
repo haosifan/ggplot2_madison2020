@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```ggplot2``` is an R-package, which was developed especially for data visualization. In contrast to many other tools for graphics creation, ggplot2 has its own grammar. This reflects a special philosophy, according to which graphics can be created. This "grammar" is taken from the book *The grammar of graphics* ([Wilkinson 2005](https://www.amazon.de/Grammar-Graphics-Statistics-Computing/dp/0387245448)). That's the reason why ggplot2 is called like that: the *gg* stands for *grammar of graphics*.
 
-ggplot2 is one of the most used packages in R and has an extremely active community behind it. the ggplot2 mailing list has over 7,000 members and there is a very active Stack Overflow community, with nearly 10,000 questions tagged with ggplot2. 
+ggplot2 is one of the most used packages in R and has an extremely active community behind it. the ggplot2 mailing list has over 7,000 members and there is a very active Stack Overflow community, with nearly 10,000 questions tagged with ggplot2.
 
 
 ```{r}
@@ -174,7 +174,9 @@ ggplot(gapminder_2007, aes(x = continent, y = lifeExp)) +
   geom_point()
 
 ggplot(gapminder_2007, aes(x = continent, y = lifeExp)) +
-  geom_boxplot()
+  geom_point()+
+  geom_boxplot(outlier.color = "red")
+
 ```
 
 ### The Cheatsheet for more geoms and more
@@ -227,7 +229,7 @@ by_year_continent
 Alright, next plot is a bit weird. Let's separate the different continents by color. ggplot2 now automatically groups the lines and the plot makes much more sense now.
 
 ```{r}
-ggplot(by_year_continent, aes(x = year, y = totalPop)) +
+ggplot(by_year_continent, aes(x = year, y = totalPop, group = continent)) +
   geom_point() + 
   geom_line() +
   expand_limits(y = 0)+
@@ -281,7 +283,7 @@ Faceting describes a division of the graphic into "subgraphs". Again, a distinct
 ```{r}
 ggplot(gapminder_2007, aes(x = gdpPercap, y = lifeExp)) +
   geom_point() +
-  scale_x_log10() +
+  scale_x_log10()+
   facet_wrap(~ continent)
 ```
 
@@ -315,7 +317,7 @@ Here the y-axis does not contain the 0 (most often a major mistake). Therefore w
 ```{r}
 ggplot(by_year, aes(x = year, y = totalPop/1000000000)) +
   geom_point() +
-  expand_limits(y = 0)
+  expand_limits(y = 10)
 ```
 
 ## Scales
